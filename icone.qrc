@@ -1,0 +1,30 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icone/quit.png</file>
+        <file>icone/save.png</file>
+        <file>icone/icon.png</file>
+        <file>icone/exit.png</file>
+        <file>icone/open.png</file>
+        <file>image/qpen-custom.png</file>
+        <file>image/qpen-dash.png</file>
+        <file>image/qpen-dashdot.png</file>
+        <file>image/qpen-dashdotdot.png</file>
+        <file>image/qpen-dot.png</file>
+        <file>image/qpen-solid.png</file>
+        <file>image/qpen-flat.png</file>
+        <file>image/qpen-roundcap.png</file>
+        <file>image/qpen-square.png</file>
+        <file>image/qpen-bevel.png</file>
+        <file>image/qpen-miter.png</file>
+        <file>image/qpen-roundjoin.png</file>
+        <file>image/circle.png</file>
+        <file>image/ellipse.ico</file>
+        <file>image/line.png</file>
+        <file>image/polyline.ico</file>
+        <file>image/rectangle.ico</file>
+        <file>image/select.png</file>
+        <file>image/square.png</file>
+        <file>icone/clear.png</file>
+        <file>icone/undo.png</file>
+    </qresource>
+</RCC>
