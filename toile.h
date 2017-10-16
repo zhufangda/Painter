@@ -6,6 +6,7 @@
 #include<QBrush>
 #include<QGraphicsScene>
 #include<QPainterPath>
+#include<QMenu>
 
 class Toile : public QWidget
 {
@@ -23,7 +24,15 @@ public:
     };
 
 private:
-
+    QList<QPainterPath> pathContiner;
+    QList<QPen> displayList;
+    QList<QString> pathNameList;
+    /** Select fonction **/
+    void createSelectMenu();
+    QList<QAction> selectedAction;
+    QMenu selectedMenu;
+    QActionGroup* selectAG = nullptr;
+    bool findSelectedObjects(QPoint position);
     /** propriety of line*/
     Qt::PenStyle penStyle = Qt::SolidLine;
     QBrush color = Qt::red;
@@ -33,7 +42,9 @@ private:
     int lineWidth = 3;
     int etat = Line;
 
+    /** mouseZone reprensent the area selected by the mouse **/
     QRect mouseZone;
+    /** rayon reprensent the radius of mouse zone **/
     const int rayon = 5;
     QPoint start_point;
     QPoint end_point;
@@ -42,10 +53,9 @@ private:
     QPen* currentPen = nullptr;
 
     QPainterPath* polyLinePath = nullptr;
-    QList<QPainterPath> pathContiner;
-    QList<QPen> displayList;
 
-    bool findSelectedObject(QPoint position);
+    bool findSelectedObject();
+    void updateMouseZone(QPoint position);
 
 protected:
     virtual void paintEvent(QPaintEvent* e);
@@ -56,6 +66,7 @@ protected:
 signals:
     void objectSelected(QPen* pen);
 public slots:
+    
     void modifyPathList(QAction* action);
     void changeColor(int colorIndex);
     void changeTypeOfLine(int typeIndex);
@@ -63,6 +74,7 @@ public slots:
     void changeCapStyle(int typeIndex);
     void changeEtat(int etat );
     void changeLineWidth(int width);
+    void selectObject(QAction* action);
 };
 
 

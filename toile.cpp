@@ -8,11 +8,7 @@
 #include<QtMath>
 #include<QAction>
 Toile::Toile(QWidget *parent) :
-    QWidget(parent),
-    pen(QPen()),
-    pathContiner(QList<QPainterPath>()),
-    displayList(QList<QPen>()),
-    mouseZone(QRect())
+    QWidget(parent)
 {
     this->setMinimumSize(800,600);
 }
@@ -22,14 +18,13 @@ void Toile::paintEvent(QPaintEvent* e){
     QPainter painter(this);
 
 
+    this->pen.setStyle(this->penStyle);
+    this->pen.setWidth(this->lineWidth);
+    this->pen.setBrush(this->color);
+    this->pen.setJoinStyle(this->joinStyle);
+    this->pen.setCapStyle(this->capStyle);
 
-    pen.setStyle(this->penStyle);
-    pen.setWidth(this->lineWidth);
-    pen.setBrush(this->color);
-    pen.setJoinStyle(this->joinStyle);
-    pen.setCapStyle(this->capStyle);
-
-    painter.setPen(pen);
+    painter.setPen(this->pen);
 
 
     qDebug() <<QString("paintEvent:") << etat;
@@ -104,9 +99,12 @@ void Toile::mousePressEvent(QMouseEvent *event){
         this->start_point= event->pos();
         switch(this->etat){
             case Select:
-                if(findSelectedObject(start_point)){
-                    emit objectSelected(currentPen);
-                    update();
+                //TODO
+                if(findSelectedObjects(start_point)){
+                    this->selectedMenu.clear();
+                    selectedMenu.addActions(selectAG->actions());
+                    selectedMenu.popup(event->globalPos());
+                    selectedMenu.exec();
                 }
                 break;
             case PolyLine:
@@ -122,13 +120,9 @@ void Toile::mousePressEvent(QMouseEvent *event){
 
 void Toile::mouseMoveEvent(QMouseEvent *event){
     this-> end_point = event->pos();
-    if(etat == Select){
-        mouseZone.setCoords(end_point.x() - rayon,
-                            end_point.y() - rayon,
-                            end_point.x() + rayon,
-                            end_point.y() + rayon);
-    }
+    updateMouseZone(event->pos());
     this-> update();
+    if(this->etat == Select && event->button() == Qt::RightButton);
 }
 
 void Toile::mouseReleaseEvent(QMouseEvent *event){
@@ -149,7 +143,7 @@ void Toile::mouseReleaseEvent(QMouseEvent *event){
             case Line:
             {
                 newPath.lineTo(end_point);
-
+                pathNameList.append("Line");
                 break;
             }
             case PolyLine:
@@ -162,6 +156,7 @@ void Toile::mouseReleaseEvent(QMouseEvent *event){
                 int r = qSqrt(tmpPoint.x() * tmpPoint.x() + tmpPoint.y() * tmpPoint.y());
                 newPath.addEllipse(start_point,r,r);
                 tmpPoint.~QPoint();
+                this->pathNameList.append("Circle");
                 break;
             }
 
@@ -170,6 +165,7 @@ void Toile::mouseReleaseEvent(QMouseEvent *event){
                 int rx = qAbs((end_point- start_point).x());
                 int ry = qAbs((end_point - start_point).y());
                 newPath.addEllipse(start_point,rx,ry);
+                this->pathNameList.append("Ellipse");
                 break;
             }
             case Square:
@@ -179,6 +175,8 @@ void Toile::mouseReleaseEvent(QMouseEvent *event){
                                 end_point.x() - start_point.x(),
                                 end_point.x() - start_point.x()
                                 );
+
+                this->pathNameList.append("Square");
                 break;
             }
             case Rectangle:
@@ -188,6 +186,7 @@ void Toile::mouseReleaseEvent(QMouseEvent *event){
                                 end_point.x()-start_point.x(),
                                 end_point.y()-start_point.y()
                                );
+                this->pathNameList.append("Rectangle");
                break;
             }
         }
@@ -208,6 +207,7 @@ void Toile::mouseDoubleClickEvent(QMouseEvent *event){
             if(this->polyLinePath == nullptr) break;
             pathContiner.append(*this->polyLinePath);
             displayList.append(this->pen);
+            pathNameList.append("Polyline");
             update();
             this->polyLinePath = nullptr;
             break;
@@ -270,8 +270,52 @@ void Toile::changeLineWidth(int width){
    this->lineWidth = width;
     update();
 }
+/** Find if there are some objects in the postion specified by arguments.
+ * This fonction will update the list of action.
+*@arg Position existe un position
+*@return ture if there this
+**/
+bool Toile::findSelectedObjects(QPoint position){
+    updateMouseZone(position);
+    if(selectAG != nullptr){
+        QList<QAction*> list = selectAG->actions();
+        for(int i=0; i<list.size();i++){
+            delete list.at(i);
+        }
 
-bool Toile::findSelectedObject(QPoint position)
+        delete selectAG;
+        selectAG = nullptr;
+    }
+
+    selectAG = new QActionGroup(this);
+
+    for(int i= this->displayList.size()-1;i>=0;i--){
+        if(this->pathContiner.at(i).intersects(mouseZone)){
+            QAction* action = new QAction(QString::number(i) + QString(" ") +pathNameList.at(i) );
+            action->setData(QVariant(i));
+            selectAG->addAction(action);
+        }
+    }
+
+    if(selectAG->actions().size() > 0){
+        connect(selectAG, SIGNAL(triggered(QAction*)), this, SLOT(selectObject(QAction*)));
+        return true;
+    }else{
+        return false;
+    }
+}
+
+/** Update the mouse zone
+*@arg the position of the mouse
+*/
+void Toile::updateMouseZone(QPoint position){
+    mouseZone.setCoords(position.x() - rayon,
+                        position.y() - rayon,
+                        position.x() + rayon,
+                        position.y() + rayon);
+}
+
+bool Toile::findSelectedObject()
 {
     for(int i = this->displayList.count()-1; i>=0;i--){
         if(this->pathContiner.at(i).intersects(mouseZone)){
@@ -290,10 +334,22 @@ void Toile::modifyPathList(QAction* action){
     if(action->text() == "&Undo" && !displayList.isEmpty()){
         this->displayList.pop_back();
         this->pathContiner.pop_back();
+        this->pathNameList.pop_back();
     }else if(action->text() == "&Clear"){
         this->displayList.clear();
         this->pathContiner.clear();
+        this->pathNameList;
     }
 
     update();
+}
+
+void Toile::selectObject(QAction* sender){
+    int i = sender->data().toInt();
+    qDebug() << "Select object:" << i <<" "<< pathNameList.at(i);
+    this->currentPath = & this->pathContiner[i];
+    this->currentPen = & this->displayList[i];
+    emit objectSelected(currentPen);
+    update();
+    qDebug() << "Find object:" << i;
 }
